@@ -133,6 +133,22 @@ function renderChartToImage(req, res, opts) {
   doChartjsRender(req, res, opts);
 }
 
+function renderChartToBase64(req, res, opts) {
+  opts.failFn = failPng;
+  opts.onRenderHandler = buf => {
+    var base64data = `data:image/png;base64,`+Buffer.from(buf).toString('base64');
+    res
+      // .type('png')
+      .set({
+        // 1 week cache
+        'Cache-Control': isDev ? 'no-cache' : 'public, max-age=604800',
+      })
+      .send(base64data)
+      .end();
+  };
+  doChartjsRender(req, res, opts);
+}
+
 async function renderChartToPdf(req, res, opts) {
   opts.failFn = failPdf;
   opts.onRenderHandler = async buf => {
@@ -312,6 +328,8 @@ app.get('/chart', (req, res) => {
 
   if (outputFormat === 'pdf') {
     renderChartToPdf(req, res, opts);
+  } else if (outputFormat === 'base64') {
+    renderChartToBase64(req, res, opts);
   } else if (!outputFormat || outputFormat === 'png') {
     renderChartToImage(req, res, opts);
   } else {
@@ -336,7 +354,10 @@ app.post('/chart', (req, res) => {
 
   if (outputFormat === 'pdf') {
     renderChartToPdf(req, res, opts);
-  } else {
+  }else if (outputFormat === 'base64') {
+    renderChartToBase64(req, res, opts);
+  }
+  else {
     renderChartToImage(req, res, opts);
   }
 
